@@ -152,6 +152,7 @@ const translations = {
     noticeSummarizedNote: (name: string) => `Repo Notes: Summarized ${name}`,
     noticeAiNotConfigured: "⚠️ AI summarization is not configured",
     noticeAiError: (msg: string) => `⚠️ AI summarization failed: ${msg}`,
+    noticeAiEmptyResponse: "⚠️ AI summarization returned empty response",
   },
 
   ja: {
@@ -305,6 +306,7 @@ const translations = {
     noticeSummarizedNote: (name: string) => `Repo Notes: ${name} を要約しました`,
     noticeAiNotConfigured: "⚠️ AI要約が設定されていません",
     noticeAiError: (msg: string) => `⚠️ AI要約に失敗しました: ${msg}`,
+    noticeAiEmptyResponse: "⚠️ AI要約が空のレスポンスを返しました",
   },
 } as const;
 

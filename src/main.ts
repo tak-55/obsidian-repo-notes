@@ -927,31 +927,42 @@ export default class RepoNotesPlugin extends Plugin {
     if (!this.settings.summaryBaseUrl || !this.settings.summaryModel) return null;
     const lang = this.settings.readmeSummaryLang === "ja" ? "日本語" : "English";
     const baseUrl = this.settings.summaryBaseUrl.replace(/\/$/, "");
+    const url = `${baseUrl}/chat/completions`;
     const headers: Record<string, string> = { "content-type": "application/json" };
     if (this.settings.summaryApiKey) {
       headers["authorization"] = `Bearer ${this.settings.summaryApiKey}`;
     }
+    const body = JSON.stringify({
+      model: this.settings.summaryModel,
+      max_tokens: 400,
+      temperature: 0.3,
+      top_p: 0.9,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a concise summarizer. Output only the final summary. No thinking, no preamble, no explanation.",
+        },
+        {
+          role: "user",
+          content: `Summarize the following README for GitHub repository "${repoName}" in ${lang}, in 3-5 sentences. Include what the tool/library does, key features, and target users. Reply only in ${lang}.\n\n---\n${readmeText}`,
+        },
+      ],
+    });
+    console.debug("[repo-notes] OpenAI-compatible request:", { url, model: this.settings.summaryModel, hasApiKey: !!this.settings.summaryApiKey, messageLength: readmeText.length });
     try {
       const res = await requestUrl({
-        url: `${baseUrl}/chat/completions`,
+        url,
         method: "POST",
         throw: false,
         headers,
-        body: JSON.stringify({
-          model: this.settings.summaryModel,
-          max_tokens: 400,
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a concise summarizer. Output only the final summary. No thinking, no preamble, no explanation.",
-            },
-            {
-              role: "user",
-              content: `Summarize the following README for GitHub repository "${repoName}" in ${lang}, in 3-5 sentences. Include what the tool/library does, key features, and target users. Reply only in ${lang}.\n\n---\n${readmeText}`,
-            },
-          ],
-        }),
+        body,
+      });
+      console.debug("[repo-notes] OpenAI-compatible response:", {
+        status: res.status,
+        hasChoices: !!res.json?.choices,
+        choiceCount: res.json?.choices?.length,
+        rawChoices: JSON.stringify(res.json?.choices),
       });
       if (res.status !== 200) {
         const errMsg = res.json?.error?.message ?? JSON.stringify(res.json);
@@ -961,11 +972,15 @@ export default class RepoNotesPlugin extends Plugin {
       }
       const msg = res.json?.choices?.[0]?.message;
       const text = msg?.content || null;
-      if (!text)
-        console.warn(
-          "[repo-notes] OpenAI-compatible: unexpected response shape",
-          JSON.stringify(res.json?.choices?.[0])
+      if (!text) {
+        console.error(
+          "[repo-notes] OpenAI-compatible: empty response",
+          { hasChoices: !!res.json?.choices, choiceCount: res.json?.choices?.length, rawChoices: JSON.stringify(res.json?.choices) }
         );
+        new Notice(this.t.noticeAiEmptyResponse);
+        return null;
+      }
+      console.debug("[repo-notes] OpenAI-compatible extracted", { contentLength: text.length, preview: text.slice(0, 80) });
       return text;
     } catch (e) {
       console.error("[repo-notes] OpenAI-compatible API request failed:", e);
