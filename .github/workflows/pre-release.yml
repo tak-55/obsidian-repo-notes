@@ -45,14 +45,12 @@ jobs:
         run: zip repo-notes.zip main.js manifest.json styles.css
 
       - name: Create GitHub Pre-release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: ${{ steps.version.outputs.version }}
-          prerelease: true
-          files: |
-            main.js
-            manifest.json
-            styles.css
-            repo-notes.zip
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --prerelease \
+            --generate-notes \
+            main.js manifest.json styles.css repo-notes.zip
