@@ -934,7 +934,7 @@ export default class RepoNotesPlugin extends Plugin {
     }
     const body = JSON.stringify({
       model: this.settings.summaryModel,
-      max_tokens: 1024,
+      max_tokens: 2048,
       temperature: 0.3,
       top_p: 0.9,
       messages: [
